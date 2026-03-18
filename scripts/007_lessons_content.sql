@@ -26,7 +26,14 @@ SELECT id INTO m6 FROM public.modules WHERE order_index = 6 AND status = 'publis
 SELECT id INTO m7 FROM public.modules WHERE order_index = 7 AND status = 'published' LIMIT 1;
 SELECT id INTO m8 FROM public.modules WHERE order_index = 8 AND status = 'published' LIMIT 1;
 
-IF m1 IS NULL THEN RAISE EXCEPTION 'Nie znaleziono modułu o order_index=1. Uruchom najpierw 006_bcu_content.sql'; END IF;
+IF m1 IS NULL THEN RAISE EXCEPTION 'Brak modułu order_index=1. Uruchom najpierw 006_bcu_content.sql'; END IF;
+IF m2 IS NULL THEN RAISE EXCEPTION 'Brak modułu order_index=2. Uruchom najpierw 006_bcu_content.sql'; END IF;
+IF m3 IS NULL THEN RAISE EXCEPTION 'Brak modułu order_index=3. Uruchom najpierw 006_bcu_content.sql'; END IF;
+IF m4 IS NULL THEN RAISE EXCEPTION 'Brak modułu order_index=4. Uruchom najpierw 006_bcu_content.sql'; END IF;
+IF m5 IS NULL THEN RAISE EXCEPTION 'Brak modułu order_index=5. Uruchom najpierw 006_bcu_content.sql'; END IF;
+IF m6 IS NULL THEN RAISE EXCEPTION 'Brak modułu order_index=6. Uruchom najpierw 006_bcu_content.sql'; END IF;
+IF m7 IS NULL THEN RAISE EXCEPTION 'Brak modułu order_index=7. Uruchom najpierw 006_bcu_content.sql'; END IF;
+IF m8 IS NULL THEN RAISE EXCEPTION 'Brak modułu order_index=8. Uruchom najpierw 006_bcu_content.sql'; END IF;
 
 -- ============================================================
 -- MODUŁ 1 – Dokumentacja międzynarodowa
