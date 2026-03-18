@@ -6,6 +6,7 @@ import { changeUserRole, changeUserStatus, resetUserPassword } from '../actions'
 import { KeyRound, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
+import { toast } from 'sonner'
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -52,7 +53,7 @@ export function UserRow({ user }: { user: UserProfile }) {
     setError(null)
     startTransition(async () => {
       try { await fn() }
-      catch (e: any) { setError(e.message) }
+      catch (e: any) { setError(e.message); toast.error(e.message) }
     })
   }
 
@@ -75,7 +76,7 @@ export function UserRow({ user }: { user: UserProfile }) {
             <select
               value={user.role}
               disabled={isPending}
-              onChange={(e) => handle(() => changeUserRole(user.id, e.target.value))}
+              onChange={(e) => handle(async () => { await changeUserRole(user.id, e.target.value); toast.success('Rola została zmieniona') })}
               className={`appearance-none pr-6 pl-2 py-1 text-xs font-bold border-0 cursor-pointer ${ROLE_COLORS[user.role] ?? 'bg-muted'}`}
             >
               <option value="admin">Admin</option>
@@ -93,7 +94,7 @@ export function UserRow({ user }: { user: UserProfile }) {
             <select
               value={user.status}
               disabled={isPending}
-              onChange={(e) => handle(() => changeUserStatus(user.id, e.target.value))}
+              onChange={(e) => handle(async () => { await changeUserStatus(user.id, e.target.value); toast.success('Status został zmieniony') })}
               className={`appearance-none pr-6 pl-2 py-1 text-xs font-bold border-0 cursor-pointer ${STATUS_COLORS[user.status] ?? 'bg-muted'}`}
             >
               <option value="active">Aktywny</option>
@@ -118,8 +119,7 @@ export function UserRow({ user }: { user: UserProfile }) {
             title="Wyślij link do resetu hasła"
             onClick={() => handle(async () => {
               await resetUserPassword(user.email!)
-              setResetSent(true)
-              setTimeout(() => setResetSent(false), 3000)
+              toast.success('Link do resetu hasła został wysłany')
             })}
           >
             <KeyRound className="w-4 h-4" />

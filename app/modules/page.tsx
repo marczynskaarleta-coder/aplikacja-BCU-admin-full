@@ -5,49 +5,64 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { ArrowLeft, ArrowRight, BookOpen } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { ArrowLeft, ArrowRight, BookOpen, Search } from 'lucide-react'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export const metadata = {
   title: 'Moduły - BCU Spedycja',
-  description: 'Przeglądaj wszystkie moduły kursu',
 }
 
-export default async function ModulesPage() {
+interface Props {
+  searchParams: Promise<{ q?: string }>
+}
+
+export default async function ModulesPage({ searchParams }: Props) {
   const { user } = await requireAuth()
+  const { q } = await searchParams
   const supabase = await createClient()
 
-  // Get published modules (RLS ensures only published are returned for non-admins)
-  const { data: modules } = await supabase
+  let query = supabase
     .from('modules')
     .select('*')
     .order('order_index')
-  
-  // Get user progress
-  const { data: progress } = await supabase
-    .from('user_progress')
-    .select('*')
-    .eq('user_id', user.id)
-  
-  // Get question counts per module
+
+  if (q) {
+    query = query.or(
+      `title.ilike.%${q}%,description.ilike.%${q}%,educational_content.ilike.%${q}%`
+    )
+  }
+
+  const { data: modules } = await query
+
   const { data: questionCounts } = await supabase
     .from('questions')
     .select('module_id')
     .eq('is_active', true)
+
+  const { data: answers } = await supabase
+    .from('user_answers')
+    .select('question_id, is_correct, questions(module_id)')
+    .eq('user_id', user.id)
 
   const countByModule: Record<string, number> = {}
   questionCounts?.forEach(q => {
     countByModule[q.module_id] = (countByModule[q.module_id] || 0) + 1
   })
 
-  const getModuleProgress = (moduleId: string) => {
-    const p = progress?.find(pr => pr.module_id === moduleId)
-    return p?.completed_questions?.length || 0
-  }
+  const correctByModule: Record<string, Set<string>> = {}
+  answers?.forEach(a => {
+    if (!a.is_correct) return
+    const moduleId = (a.questions as any)?.module_id
+    if (!moduleId) return
+    if (!correctByModule[moduleId]) correctByModule[moduleId] = new Set()
+    correctByModule[moduleId].add(a.question_id)
+  })
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b-2 border-foreground">
+      <header className="border-b-2 border-foreground sticky top-0 z-50 bg-background">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
@@ -55,51 +70,75 @@ export default async function ModulesPage() {
               <span className="font-medium">Powrót</span>
             </Link>
             <Link href="/dashboard" className="flex items-center gap-3">
-              <Image
-                src="/images/bcu-logo.png"
-                alt="BCU Logo"
-                width={40}
-                height={40}
-                className="w-10 h-10"
-              />
+              <Image src="/images/bcu-logo.png" alt="BCU Logo" width={40} height={40} className="w-10 h-10" />
               <span className="font-black text-lg">BCU Spedycja</span>
             </Link>
-            <div className="w-20" />
+            <ThemeToggle />
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-primary">
               <BookOpen className="w-8 h-8 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-3xl font-black">Moduły kursu</h1>
               <p className="text-muted-foreground">
-                {modules?.length || 0} modułów tematycznych
+                {modules?.length || 0} {q ? 'wyników' : 'modułów tematycznych'}
               </p>
             </div>
           </div>
 
+          {/* Wyszukiwarka */}
+          <form className="mb-8">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                name="q"
+                defaultValue={q}
+                placeholder="Szukaj po tytule, opisie lub treści materiału..."
+                className="pl-10 h-12 border-2 border-foreground text-base"
+              />
+              {q && (
+                <Link
+                  href="/modules"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground font-bold"
+                >
+                  Wyczyść
+                </Link>
+              )}
+            </div>
+          </form>
+
           {!modules || modules.length === 0 ? (
             <Card className="border-2 border-dashed border-muted-foreground">
               <CardContent className="p-12 text-center">
-                <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                <h2 className="text-2xl font-black mb-2">Brak modułów</h2>
+                <Search className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-black mb-2">
+                  {q ? 'Brak wyników' : 'Brak modułów'}
+                </h2>
                 <p className="text-muted-foreground">
-                  Administrator musi dodać moduły do platformy.
+                  {q ? `Nic nie znaleziono dla "${q}". Spróbuj innych słów kluczowych.` : 'Administrator musi dodać moduły do platformy.'}
                 </p>
+                {q && (
+                  <Link href="/modules" className="mt-4 inline-block">
+                    <Button variant="outline" className="border-2 border-foreground font-bold">
+                      Pokaż wszystkie moduły
+                    </Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
               {modules.map((module, index) => {
                 const questionCount = countByModule[module.id] || 0
-                const completedCount = getModuleProgress(module.id)
-                const progressPercent = questionCount > 0 
-                  ? Math.round((completedCount / questionCount) * 100) 
+                const completedCount = correctByModule[module.id]?.size || 0
+                const progressPercent = questionCount > 0
+                  ? Math.round((completedCount / questionCount) * 100)
                   : 0
 
                 return (
@@ -119,18 +158,18 @@ export default async function ModulesPage() {
                         <CardTitle className="text-xl font-black mb-2 group-hover:text-primary">
                           {module.title}
                         </CardTitle>
-                        <p className="text-muted-foreground text-sm mb-4">
+                        <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                           {module.description}
                         </p>
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span>Postęp</span>
-                            <span className="font-bold">{progressPercent}%</span>
+                            <span className="font-bold">{completedCount}/{questionCount} ({progressPercent}%)</span>
                           </div>
                           <Progress value={progressPercent} className="h-2" />
                         </div>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           className="w-full mt-4 gap-2 font-bold group-hover:bg-primary group-hover:text-primary-foreground"
                         >
                           Rozpocznij moduł

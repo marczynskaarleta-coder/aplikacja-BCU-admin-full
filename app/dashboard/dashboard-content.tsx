@@ -20,6 +20,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 interface DashboardContentProps {
   user: {
@@ -35,14 +36,10 @@ interface DashboardContentProps {
     description: string
     icon: string
     order_index: number
+    completedCount: number
+    totalCount: number
+    progressPercent: number
   }>
-  progress: Array<{
-    module_id: string
-    completed_questions: string[]
-    correct_answers: number
-    total_attempts: number
-  }>
-  questionCountsPerModule: Record<string, number>
   stats: {
     totalQuestions: number
     answeredQuestions: number
@@ -51,7 +48,7 @@ interface DashboardContentProps {
   }
 }
 
-export function DashboardContent({ user, modules, progress, questionCountsPerModule, stats }: DashboardContentProps) {
+export function DashboardContent({ user, modules, stats }: DashboardContentProps) {
   const router = useRouter()
   const overallProgress = stats.totalQuestions > 0 
     ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) 
@@ -62,19 +59,6 @@ export function DashboardContent({ user, modules, progress, questionCountsPerMod
     await supabase.auth.signOut()
     router.push('/')
     router.refresh()
-  }
-
-  const getModuleProgress = (moduleId: string) => {
-    const moduleProgress = progress.find(p => p.module_id === moduleId)
-    const completed = moduleProgress?.completed_questions?.length || 0
-    const total = questionCountsPerModule[moduleId] || 0
-    if (total === 0) return 0
-    return Math.round((completed / total) * 100)
-  }
-
-  const getModuleCompletedCount = (moduleId: string) => {
-    const moduleProgress = progress.find(p => p.module_id === moduleId)
-    return moduleProgress?.completed_questions?.length || 0
   }
 
   return (
@@ -94,6 +78,7 @@ export function DashboardContent({ user, modules, progress, questionCountsPerMod
               <span className="font-black text-lg">BCU Spedycja</span>
             </Link>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               {user.isAdmin && (
                 <Link href="/admin">
                   <Button variant="outline" size="sm" className="gap-2 border-2 border-foreground font-bold">
@@ -280,9 +265,7 @@ export function DashboardContent({ user, modules, progress, questionCountsPerMod
             </Card>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {modules.slice(0, 6).map((module, index) => {
-                const moduleProgress = getModuleProgress(module.id)
-                return (
+              {modules.slice(0, 6).map((module, index) => (
                   <Link key={module.id} href={`/modules/${module.id}`}>
                     <Card className="border-2 border-foreground hover:border-primary hover:shadow-[4px_4px_0_0_hsl(var(--primary))] transition-all h-full group">
                       <CardHeader className="pb-3">
@@ -291,7 +274,7 @@ export function DashboardContent({ user, modules, progress, questionCountsPerMod
                             {String(index + 1).padStart(2, '0')}
                           </div>
                           <span className="text-xs font-bold text-muted-foreground">
-                            {`${getModuleCompletedCount(module.id)}/${questionCountsPerModule[module.id] || 0} pytań`}
+                            {module.completedCount}/{module.totalCount} pytań
                           </span>
                         </div>
                         <CardTitle className="text-lg font-bold mt-3 group-hover:text-primary">
@@ -302,12 +285,11 @@ export function DashboardContent({ user, modules, progress, questionCountsPerMod
                         <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                           {module.description}
                         </p>
-                        <Progress value={moduleProgress} className="h-2" />
+                        <Progress value={module.progressPercent} className="h-2" />
                       </CardContent>
                     </Card>
                   </Link>
-                )
-              })}
+                ))}
             </div>
           )}
         </div>

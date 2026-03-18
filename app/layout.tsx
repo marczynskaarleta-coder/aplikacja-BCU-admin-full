@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from 'sonner'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const inter = Inter({ 
@@ -15,7 +17,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'BCU Spedycja - Platforma Edukacyjna',
   description: 'Beskidzkie Centrum Umiejętności - Platforma e-learningowa do nauki spedycji i transportu. Przygotuj się do egzaminów branżowych i certyfikatu kompetencji zawodowych.',
-  generator: 'v0.app',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -83,7 +84,10 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         {children}
+        <Toaster position="bottom-right" richColors />
+        </ThemeProvider>
         <Analytics />
         <script
           dangerouslySetInnerHTML={{
@@ -91,12 +95,8 @@ export default function RootLayout({
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) {
-                      console.log('ServiceWorker registration successful');
-                    },
-                    function(err) {
-                      console.log('ServiceWorker registration failed: ', err);
-                    }
+                    function(registration) {},
+                    function(err) {}
                   );
                 });
               }

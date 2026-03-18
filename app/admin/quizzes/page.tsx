@@ -46,12 +46,12 @@ export default async function AdminQuizzesPage({ searchParams }: Props) {
 
   const { data: questions, error } = questionsResult
 
-  // Group by module
-  const byModule: Record<string, { title: string; questions: any[] }> = {}
+  type QuestionRow = { id: string; question_text: string; difficulty_text: string | null; difficulty: number | string; is_active: boolean; module_id: string; modules: { title: string } | null }
+  const byModule: Record<string, { title: string; questions: QuestionRow[] }> = {}
   questions?.forEach(q => {
-    const modTitle = (q.modules as any)?.title ?? 'Bez modułu'
+    const modTitle = q.modules?.title ?? 'Bez modułu'
     if (!byModule[q.module_id]) byModule[q.module_id] = { title: modTitle, questions: [] }
-    byModule[q.module_id].questions.push(q)
+    byModule[q.module_id].questions.push(q as QuestionRow)
   })
 
   return (
